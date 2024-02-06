@@ -87,10 +87,8 @@ int save_time(){
             if (stat(path, &fileInfo) == -1) {
                 printf("Error: Unable to get file/directory information.\n");
                 return 1;
-            }
-            
-            //fprintf(file,"%s\n", path);
-            
+            } 
+            //fprintf(file,"%s\n", path);  
             struct stat foo;
             time_t mtime;
             struct utimbuf new_times;
@@ -103,12 +101,8 @@ int save_time(){
     closedir(dir);
     return 0;
 }
-
-
 int run_init(int argc, char * const argv[]) {
     //checking_status();
-    //fprintf(stdout,"hh");
-   
     char cwd[1024];
     if (getcwd(cwd, sizeof(cwd)) == NULL) return 1;
 
@@ -206,6 +200,10 @@ int create_configs(char *username, char *email) {
      file = fopen(".neogit/max", "w");
     fclose(file);
     file = fopen(".neogit/readycommit", "w");
+    fclose(file);
+    file = fopen(".neogit/allow", "w");
+    fclose(file);
+    file = fopen(".neogit/hook", "w");
     fclose(file);
     file = fopen(".neogit/stagefile", "w");
     fclose(file);
@@ -505,7 +503,6 @@ int run_commit(int argc, char * const argv[]) {
         perror("please use the correct format");
         return 1;
     }
-    
     char message[MAX_MESSAGE_LENGTH];
     if(strstr(argv[2],"m")){strcpy(message, argv[3]);}
     else if(strstr(argv[2],"s")){
@@ -516,6 +513,7 @@ int run_commit(int argc, char * const argv[]) {
     char temp[MAX_LINE_LENGTH][MAX_LINE_LENGTH];
     int invalid_1=0;
     int count_line=0;
+    
     while (fgets(line, sizeof(line), file2) != NULL) {
         // change line with argv4
         int length = strlen(line);
@@ -528,7 +526,9 @@ int run_commit(int argc, char * const argv[]) {
     if(invalid_1==0){printf("invalid shortcut command\n");return 0;}
     fclose(file2);
     }
+    
     else{printf("invalid command");return 0;}
+    
     int d=strlen(message);if(d>72){printf("invalid command");return 0;}
     if(d==0){printf("invalid command");return 0;}
     if(message==NULL){printf("invalid command");return 0;}
@@ -734,7 +734,7 @@ void copy_files(const char* source_dir, const char* dest_dir) {
     // Close directory
     closedir(dir);
 
-    printf("Directory copied successfully!\n");
+    //printf("Directory copied successfully!\n");
 }
 int commit_staged_file(int commit_ID, char* filepath) {
     DIR *dir = opendir(".");
@@ -757,7 +757,6 @@ int commit_staged_file(int commit_ID, char* filepath) {
             if (read_file == NULL) return 1;
             write_file = fopen(write_path, "w");
             if (write_file == NULL) return 1;
-            //printf("*");
             char buffer;
             buffer = fgetc(read_file);
             while(buffer != EOF) {
@@ -780,7 +779,6 @@ int commit_staged_file(int commit_ID, char* filepath) {
             char tmp[10];
             sprintf(tmp, "%d", commit_ID);
             strcat(write_path, tmp);
-            //printf("*");
             copy_files(read_path,write_path);
         }
     }
@@ -791,11 +789,8 @@ int commit_staged_file(int commit_ID, char* filepath) {
 
 int track_file(char *filepath) {
     //if (is_tracked(filepath)) return 0;
-
     FILE *file = fopen(".neogit/tracks", "a");
-    //printf("&&");
     if (file == NULL) return 1;
-    //printf("@");
     fprintf(file, "%s\n", filepath);
     fclose(file);
     return 0;
@@ -849,7 +844,6 @@ int create_commit_file(int commit_ID, char *message,char * timeString) {
     
     DIR *dir = opendir(".");
     //printf("%s\n",dir);
-    //dir > output.txt
     struct dirent *entry;
     if (dir == NULL) {
         perror("Error opening current directory");
@@ -1679,6 +1673,19 @@ int run_log_chand(char * const argv[]){
 }
 
 int run_log_branch(int argc,char * const argv[]){
+    int flag_branch=0;
+    FILE *file7=fopen(".neogit/branches","r");
+    char line7[MAX_LINE_LENGTH];
+    while (fgets(line7, sizeof(line7),file7) != NULL) {
+        int length = strlen(line7);
+
+        // remove '\n'
+        if (length > 0 && line7[length - 1] == '\n') {
+            line7[length - 1] = '\0';
+        }
+        if (strcmp(line7, argv[3]) == 0) {flag_branch=1;}
+    }
+    if(flag_branch==0){printf("this branch doesnt exsits\n");return 0;}
     char filepath_dir[MAX_FILENAME_LENGTH];
     strcpy(filepath_dir, ".neogit/commits/");
     FILE * find_last=fopen(".neogit/config","r");
@@ -1855,7 +1862,7 @@ int run_log_since(int argc,char * const argv[]){
         filepath_dir[strlen(filepath_dir) - strlen(number)] = '\0';
     }
     printf("count of all files : %d\n",sum_file);
-    if(sum_file ==0){printf("no commits find for this author\n");}
+    if(sum_file ==0){printf("no commits find for this time\n");}
     return 0;
 }
 
@@ -1929,7 +1936,7 @@ int run_log_before(int argc,char * const argv[]){
         filepath_dir[strlen(filepath_dir) - strlen(number)] = '\0';
     }
     printf("count of all files : %d\n",sum_file);
-    if(sum_file ==0){printf("no commits find for this author\n");}
+    if(sum_file ==0){printf("no commits find for this time\n");}
     return 0;
 }
 
@@ -2022,7 +2029,7 @@ int run_branch(int argc,char * const argv[]){
 
     FILE *write_file = fopen(file_path_write, "w");
     if (write_file == NULL) return 1;
-    printf("%s %s",file_path_read,file_path_write);
+    //printf("%s %s",file_path_read,file_path_write);
     char line1[MAX_LINE_LENGTH];
     while (fgets(line1, sizeof(line1), read_file) != NULL) {
         if(strstr(line1,"branch")){fprintf(write_file,"branch: %s\n",argv[2]);}
@@ -2146,6 +2153,7 @@ int run_tags(int argc,char * const argv[]){
     else{fprintf(file1,"not allowed to overwrite\n");}
     fclose(file3);
     fclose(file1);
+    printf("tag added successfully\n");
     return 0;
 }
 int run_tags_show(int argc,char * const argv[]){
@@ -2167,7 +2175,7 @@ int run_tags_show(int argc,char * const argv[]){
     }
     char file_path[MAX_FILENAME_LENGTH];
     strcpy(file_path,".neogit/tags/");
-    strcat(file_path,entry->d_name);
+    strcat(file_path,argv[3]);
     FILE * file=fopen(file_path,"r");
     char line[MAX_LINE_LENGTH];
     while (fgets(line, sizeof(line), file) != NULL) {
@@ -2358,9 +2366,7 @@ int remove_null_lines_diff(char *filename, int start_line, int last_line,int num
     int i=0;
     // Read line by line from the input file
     while (fgets(buffer, sizeof(buffer), input)) {
-        //printf("*");
         if(i>=start_line){
-            //printf("*");
         // Remove any newline character at the end of the line
         buffer[strcspn(buffer, "\n")] = '\0';
         //printf("%ld\n",strlen(buffer));
@@ -2569,7 +2575,6 @@ int run_merge(int argc,char * const argv[]){
                 i++;
             }
             fclose(file);
-    //}
     }
     char tmp[30];
     sprintf(tmp,"%d",max);
@@ -2629,6 +2634,7 @@ int run_merge(int argc,char * const argv[]){
         if(flag_6==1){strcpy(files_2[i2],line);i2++;}
         if(strstr(line,"file")){flag_6=1;}  
     }
+
     char name_1[500][500];
     char num_1[500][500];
     char name_2[500][500];
@@ -2650,9 +2656,12 @@ int run_merge(int argc,char * const argv[]){
     }
     //run_diff_marge(files_1[k],files_2[k]);
     }
+    
     FILE *file3=fopen(".neogit/merge","r");
+    
     char v;
     fscanf(file3,"%c",&v);
+    return 0;
     if(flag_allow==0){printf("you are not allowed to merge\n");}
     else {merge(file_path_read_1,file_path_read_2);}
     return 0;
@@ -2681,7 +2690,6 @@ int run_revert(int argc,char * const argv[]){
     FILE*file1=fopen(file_path_write,"w");
     char line[MAX_LINE_LENGTH];
     int i=0;
-    //printf("$");
     while (fgets(line, sizeof(line), file) != NULL) {
 
             if(i>3){
@@ -2792,17 +2800,13 @@ int run_revert_head(int argc,char * const argv[]){
     char tmp_2[30];
     sprintf(tmp_2,"%d",last_exist_file);
     strcat(file_path_write,tmp_2);
-    //printf("%s",file_path_write);
-    //printf("%s",file_path_read);
-    
     
     FILE*file=fopen(file_path_read,"r");
     FILE*file1=fopen(file_path_write,"w");
     char line[MAX_LINE_LENGTH];
     int i=0;
-    //printf("$");
     while (fgets(line, sizeof(line), file) != NULL) {
-
+            printf("%s",line);
             if(i>3){
                 char name[100];char num[20];
                 int j=0;
@@ -2825,8 +2829,10 @@ int run_revert_head(int argc,char * const argv[]){
                     sprintf(num,"%d",last_id);
                     strcpy(argv[3],num);
                 }
+                printf("*%s*",argv[3]);
                 run_checkout_commit_id(argc,argv);
             }
+            printf("&");
             if(i==2){
                 if(strstr(argv[2],"m")){fprintf(file1,"message: %s\n",argv[3]);}
                 else{fprintf(file1,"%s",line);}
@@ -3029,6 +3035,7 @@ int check_space(char * filename){
 int check_hooks(char *filepath){
     char line[MAX_LINE_LENGTH];
     FILE*file=fopen(".neogit/hook","r");
+    //return 0;
     while (fgets(line, sizeof(line), file) != NULL) {
         int length = strlen(line);
         // remove '\n'
@@ -3067,7 +3074,6 @@ int check_hook_size(char * filename){
     return 0;
 }
 int check_hook_space(char * filename){
-    //printf("%s",filename);
     if (strstr(filename, ".cpp") || strstr(filename, ".c") || strstr(filename, ".txt")) {
         FILE *file = fopen(filename, "r");
         if (file == NULL) {
@@ -3134,10 +3140,7 @@ int main(int argc, char *argv[]) {
         fprintf(stdout, "please enter a valid command");
         return 1;
     }
-    
     print_command(argc, argv);
-    //run_add_file_situation();
-    run_check_alias(argc,argv);
     if (strcmp(argv[1], "init") == 0) {
         return run_init(argc, argv);
     } else if (strcmp(argv[1], "add") == 0) {
@@ -3166,7 +3169,7 @@ int main(int argc, char *argv[]) {
         if(argc<2){printf("invalid command");return 0;}
         return run_status(argc, argv);
     } else if (strcmp(argv[1], "commit") == 0) {
-        FILE*file=fopen(".neogit/allow","r");if(file!=NULL){char d[50];fscanf(file,"%s",d);if(d[0]=='n'){printf("you are not allowed to commit\n");return 0;}}
+        FILE*file=fopen(".neogit/allow","r");if(file!=NULL){char d[50];fscanf(file,"%s",d);if(d[0]=='n'){printf("you are not allowed to commit\n");return 0;}}  
         if(strstr(argv[2],"m")){return run_commit(argc, argv);}
         else if(strstr(argv[2],"s")){;return run_commit(argc, argv);}
         else{printf("invalid command");}
@@ -3204,8 +3207,6 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(argv[1], "branch") == 0) {
         if(argv[2]!=NULL){return run_branch(argc, argv);}
         else{run_print_all_branches();}
-        //?????
-        
     } else if (strcmp(argv[1], "tag") == 0) {
         //printf("%d",argc);
         if(argc==2){run_print_all_tags(argc, argv);}
@@ -3244,6 +3245,5 @@ int main(int argc, char *argv[]) {
         else{run_precommit();}
     }
     else{fprintf(stdout,"invalid command\n");}
-    
     return 0;
 }
